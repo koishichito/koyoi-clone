@@ -1,0 +1,24 @@
+{
+  "name": "koyoi-backend",
+  "version": "1.0.0",
+  "description": "Koyoi LINE Bot Backend",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "keywords": ["line", "bot", "dating"],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "express": "^4.18.2",
+    "@line/bot-sdk": "^8.0.1",
+    "sqlite3": "^5.1.6",
+    "uuid": "^9.0.1",
+    "dotenv": "^16.3.1",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
