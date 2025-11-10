@@ -269,8 +269,10 @@ async function handleTimeSelection(event, lineUserId, time) {
     // マッチング成功
     const matchId = uuidv4();
     await new Promise((resolve) => {
+      const insertMatchSql =
+        'INSERT INTO matches (id, user1_id, user2_id, time_slot_id, date, time, location, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
       db.run(
-        'INSERT INTO matches (id, user1_id, user2_id, time_slot_id, date, time, location, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)',
+        insertMatchSql,
         [matchId, user.id, match.id, timeSlotId, today, time, user.location, 'matched'],
         resolve
       );
