@@ -310,6 +310,73 @@ async function handleTimeSelection(event, lineUserId, time) {
       text: `🎉 マッチングしました！\n\n【相手のプロフィール】\n名前: ${match.display_name}\n年齢: ${match.age}歳\n性別: ${match.gender}\n自己紹介: ${match.bio}\n\n待ち合わせ時間: ${time}\n場所: ${user.location}`,
     });
   } else {
+    // デモユーザーとのマッチングを試行
+    const demoMatch = await findDemoMatch(user, today, time);
+
+    if (demoMatch) {
+      const matchId = uuidv4();
+
+      // デモユーザー用の時間枠を準備
+      const demoTimeSlot = await new Promise((resolve) => {
+        db.get(
+          'SELECT * FROM time_slots WHERE user_id = ? AND date = ? AND time = ?',
+          [demoMatch.id, today, time],
+          (err, row) => {
+            if (err) {
+              console.error('❌ Demo time slot fetch error:', err);
+              resolve(null);
+            } else {
+              resolve(row);
+            }
+          }
+        );
+      });
+
+      let demoTimeSlotId;
+      if (demoTimeSlot) {
+        demoTimeSlotId = demoTimeSlot.id;
+      } else {
+        demoTimeSlotId = uuidv4();
+        await new Promise((resolve) => {
+          db.run(
+            'INSERT INTO time_slots (id, user_id, date, time, location) VALUES (?, ?, ?, ?, ?)',
+            [demoTimeSlotId, demoMatch.id, today, time, user.location],
+            (err) => {
+              if (err) {
+                console.error('❌ Demo time slot creation error:', err);
+              }
+              resolve();
+            }
+          );
+        });
+      }
+
+      await new Promise((resolve) => {
+        const insertMatchSql =
+          'INSERT INTO matches (id, user1_id, user2_id, time_slot_id, date, time, location, status) VALUES (?, ?, ?, ?, ?, ?, ?, ?)';
+        db.run(
+          insertMatchSql,
+          [matchId, user.id, demoMatch.id, timeSlotId, today, time, user.location, 'matched'],
+          resolve
+        );
+      });
+
+      await new Promise((resolve) => {
+        db.run(
+          'UPDATE time_slots SET status = ? WHERE id IN (?, ?)',
+          ['matched', timeSlotId, demoTimeSlotId],
+          resolve
+        );
+      });
+
+      console.log(`✨ Demo match created: ${user.display_name} ⇔ ${demoMatch.display_name}`);
+
+      return client.replyMessage(event.replyToken, {
+        type: 'text',
+        text: `🎉 マッチングしました！\n\n【相手のプロフィール】\n名前: ${demoMatch.display_name}\n年齢: ${demoMatch.age}歳\n性別: ${demoMatch.gender}\n自己紹介: ${demoMatch.bio}\n\n待ち合わせ時間: ${time}\n場所: ${user.location}`,
+      });
+    }
+
     // マッチング待機中
     return client.replyMessage(event.replyToken, {
       type: 'text',
@@ -351,6 +418,41 @@ async function findMatch(user, date, time) {
       (err, row) => {
         if (err) {
           console.error('❌ Match search error:', err);
+          resolve(null);
+        } else {
+          resolve(row);
+        }
+      }
+    );
+  });
+}
+
+// デモユーザーとのマッチングを探す関数
+async function findDemoMatch(user, date, time) {
+  const db = require('./database');
+
+  return new Promise((resolve) => {
+    db.get(
+      `SELECT * FROM users
+       WHERE line_user_id LIKE 'demo_user_%'
+         AND location = ?
+         AND gender = ?
+         AND looking_for = ?
+         AND age BETWEEN ? AND ?
+         AND ? BETWEEN age_range_min AND age_range_max
+       ORDER BY created_at ASC
+       LIMIT 1`,
+      [
+        user.location,
+        user.looking_for,
+        user.gender,
+        user.age_range_min,
+        user.age_range_max,
+        user.age,
+      ],
+      (err, row) => {
+        if (err) {
+          console.error('❌ Demo match search error:', err);
           resolve(null);
         } else {
           resolve(row);
