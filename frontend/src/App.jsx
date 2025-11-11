@@ -3,8 +3,8 @@ import liff from '@line/liff';
 import axios from 'axios';
 import './App.css';
 
-const LIFF_ID = import.meta.env.VITE_LIFF_ID;
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const LIFF_ID = import.meta.env.VITE_LIFF_ID || '2008407270-AWoJGo5k';
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://koyoi-backend-production.up.railway.app/api';
 
 function App() {
   const [profile, setProfile] = useState(null);
