@@ -1,5 +1,36 @@
+# Dependencies
 node_modules/
+
+# Environment variables
 .env
+.env.*
+
+# Databases
 *.db
-.DS_Store
+*.sqlite3
+
+# Build output
 dist/
+build/
+
+# Vercel
+.vercel/
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS-specific
+.DS_Store
+Thumbs.db
+
+# Documentation (sensitive)
+SECRETS.md
+
+# Reports (generated)
+ERROR_REPORT.md
+FIX_SUMMARY.md
+DEPLOYMENT_SUCCESS.md
+FINAL_FIX_REPORT.md
+TEST_REPORT.md
