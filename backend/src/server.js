@@ -1,6 +1,7 @@
 const express = require('express');
 const line = require('@line/bot-sdk');
 const cors = require('cors');
+const { v4: uuidv4 } = require('uuid');
 require('dotenv').config();
 require('./database');
 
@@ -216,7 +217,6 @@ async function handlePostback(event) {
 
 // 時間選択処理
 async function handleTimeSelection(event, lineUserId, time) {
-  const { v4: uuidv4 } = require('uuid');
   const db = require('./database');
 
   // ユーザー情報取得
@@ -261,6 +261,9 @@ async function handleTimeSelection(event, lineUserId, time) {
     });
     console.log(`⏰ Time slot created: ${timeSlotId}`);
   }
+
+  // デモユーザーの時間枠を用意（テスト用）
+  await ensureDemoTimeSlotForUser(user, today, time);
 
   // マッチング処理
   const match = await findMatch(user, today, time);
@@ -358,6 +361,99 @@ async function findMatch(user, date, time) {
       }
     );
   });
+}
+
+// デモユーザーの時間枠を準備（テスト用マッチング）
+async function ensureDemoTimeSlotForUser(user, date, time) {
+  const db = require('./database');
+
+  const demoUser = await new Promise((resolve) => {
+    db.get(
+      `SELECT * FROM users
+       WHERE line_user_id LIKE 'demo_user_%'
+         AND gender = ?
+         AND looking_for = ?
+         AND age BETWEEN ? AND ?
+         AND ? BETWEEN age_range_min AND age_range_max
+         AND location = ?
+       ORDER BY RANDOM()
+       LIMIT 1`,
+      [
+        user.looking_for,
+        user.gender,
+        user.age_range_min,
+        user.age_range_max,
+        user.age,
+        user.location,
+      ],
+      (err, row) => {
+        if (err) {
+          console.error('⚠️ Demo user search error:', err);
+          resolve(null);
+        } else {
+          resolve(row);
+        }
+      }
+    );
+  });
+
+  if (!demoUser) {
+    console.log('ℹ️ No demo user available for automatic matching.');
+    return null;
+  }
+
+  const existingSlot = await new Promise((resolve) => {
+    db.get(
+      'SELECT * FROM time_slots WHERE user_id = ? AND date = ? AND time = ? AND status = "waiting"',
+      [demoUser.id, date, time],
+      (err, row) => {
+        if (err) {
+          console.error('⚠️ Demo time slot lookup error:', err);
+          resolve(null);
+        } else {
+          resolve(row);
+        }
+      }
+    );
+  });
+
+  if (existingSlot) {
+    if (existingSlot.location !== user.location) {
+      await new Promise((resolve) => {
+        db.run(
+          'UPDATE time_slots SET location = ? WHERE id = ?',
+          [user.location, existingSlot.id],
+          (err) => {
+            if (err) {
+              console.error('⚠️ Failed to update demo time slot location:', err);
+            }
+            resolve();
+          }
+        );
+      });
+    }
+
+    console.log(`⏱️ Reusing demo time slot ${existingSlot.id} for ${demoUser.display_name}`);
+    return demoUser;
+  }
+
+  const timeSlotId = uuidv4();
+  await new Promise((resolve) => {
+    db.run(
+      'INSERT INTO time_slots (id, user_id, date, time, location) VALUES (?, ?, ?, ?, ?)',
+      [timeSlotId, demoUser.id, date, time, user.location],
+      (err) => {
+        if (err) {
+          console.error('⚠️ Failed to create demo time slot:', err);
+        } else {
+          console.log(`🧪 Demo time slot created: ${timeSlotId} for ${demoUser.display_name}`);
+        }
+        resolve();
+      }
+    );
+  });
+
+  return demoUser;
 }
 
 // サーバー起動
