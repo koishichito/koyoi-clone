@@ -279,9 +279,13 @@ async function handleTimeSelection(event, lineUserId, time) {
     });
 
     // time_slotsのステータスを更新
+    const matchTimeSlotId = match.match_time_slot_id;
     await new Promise((resolve) => {
-      db.run('UPDATE time_slots SET status = ? WHERE id = ? OR user_id = ?',
-        ['matched', timeSlotId, match.id], resolve);
+      db.run(
+        'UPDATE time_slots SET status = ? WHERE id IN (?, ?)',
+        ['matched', timeSlotId, matchTimeSlotId],
+        resolve
+      );
     });
 
     console.log(`💕 Match created: ${user.display_name} ⇔ ${match.display_name}`);
@@ -320,7 +324,7 @@ async function findMatch(user, date, time) {
 
   return new Promise((resolve) => {
     db.get(
-      `SELECT u.* FROM users u
+      `SELECT u.*, ts.id AS match_time_slot_id FROM users u
        INNER JOIN time_slots ts ON ts.user_id = u.id
        WHERE ts.date = ?
          AND ts.time = ?
