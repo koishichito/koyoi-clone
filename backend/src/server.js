@@ -463,7 +463,16 @@ async function findDemoMatch(user, date, time) {
 }
 
 // サーバー起動
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log('🚀 Server running on port', PORT);
   console.log(`📍 Webhook URL: http://localhost:${PORT}/webhook`);
+  
+  // デモユーザーの自動シード
+  try {
+    const db = require('./database');
+    const { ensureDemoUsersExist } = require('./autoSeedDemoUsers');
+    await ensureDemoUsersExist(db);
+  } catch (error) {
+    console.error('⚠️ Failed to seed demo users:', error);
+  }
 });
