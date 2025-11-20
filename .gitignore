@@ -27,6 +27,7 @@ Thumbs.db
 
 # Documentation (sensitive)
 SECRETS.md
+ENVIRONMENT_CONFIGURATION.md
 
 # Reports (generated)
 ERROR_REPORT.md
@@ -34,3 +35,8 @@ FIX_SUMMARY.md
 DEPLOYMENT_SUCCESS.md
 FINAL_FIX_REPORT.md
 TEST_REPORT.md
+
+# System
+.node-bin/
+.npm-global/
+.npm-cache/
